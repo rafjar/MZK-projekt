@@ -1,7 +1,21 @@
 breed [people person]
-people-own [destination]
+people-own
+[
+  destination
+]
 
-globals [corridor-width final-destination-size walls-color column-color destination-color1 destination-color2 destination-color3 destination-color4 trace-color]
+globals
+[
+  corridor-width
+  final-destination-size
+  walls-color
+  column-color
+  destination-color1
+  destination-color2
+  destination-color3
+  destination-color4
+  trace-color
+]
 
 to setup
   clear-all
@@ -10,11 +24,10 @@ to setup
   set walls-color white
   set column-color violet
   set trace-color cyan
-  set destination-color1 14
-  set destination-color2 24
-  set destination-color3 34
-  set destination-color4 44
-
+  set destination-color1 105
+  set destination-color2 0
+  set destination-color3 45
+  set destination-color4 15
 
   ; Ustaw ściany
   ask patches [set pcolor walls-color]
@@ -34,43 +47,30 @@ to setup
   ask patches with [distancexy 0 pycor < corridor-width and pycor < (- max-pycor + final-destination-size)] [set pcolor destination-color3]
   ask patches with [distancexy 0 pycor < corridor-width and pycor > (max-pycor - final-destination-size)] [set pcolor destination-color4]
 
-  ; Wygeneruj ludzi i przypisz im odpowiednie kolory
+  ; Wygeneruj ludzi i przypisz im odpowiednie kolory (kolory odpowiadające ich destynacji)
   create-people population
   ask people
   [
-    set size 2
-    set destination one-of [1 2 3 4]
-    ifelse destination = 1
-    [
-      set destination one-of [2 3 4]
-      set color (ifelse-value destination = 2 [destination-color2 + 2] destination = 3 [destination-color3 + 2] destination = 4 [destination-color4 + 2])
-      move-to one-of patches with [pcolor = destination-color1]
-    ]
-    [
-      ifelse destination = 2
-      [
-        set destination one-of [1 3 4]
-        set color (ifelse-value destination = 1 [destination-color1 + 2] destination = 3 [destination-color3 + 2] destination = 4 [destination-color4 + 2])
-        move-to one-of patches with [pcolor = destination-color2]
-      ]
-      [
-        ifelse destination = 3
-        [
-          set destination one-of [2 1 4]
-          set color (ifelse-value destination = 2 [destination-color2 + 2] destination = 1 [destination-color1 + 2] destination = 4 [destination-color4 + 2])
-          move-to one-of patches with [pcolor = destination-color3]
-        ]
-        [
-          set destination one-of [2 3 1]
-          set color (ifelse-value destination = 2 [destination-color2 + 2] destination = 3 [destination-color3 + 2] destination = 1 [destination-color1 + 2])
-          move-to one-of patches with [pcolor = destination-color4]
-        ]
-      ]
-    ]
+    set-destination
+    set-initial-position
   ]
 
-
   reset-ticks
+end
+
+; Ustaw destynację agenta
+to set-destination
+  let temp-dest one-of (list destination-color1 destination-color2 destination-color3 destination-color4)
+  set destination one-of patches with [pcolor = temp-dest]
+  set color ([pcolor] of destination)
+  set size 2
+end
+
+; Ustaw losowe miejsce początkowe agenta (inne niż jego destynacja)
+to set-initial-position
+  let init-pos-color one-of (remove [pcolor] of destination (list destination-color1 destination-color2 destination-color3 destination-color4))
+  let init-pos one-of patches with [pcolor = init-pos-color]
+  move-to init-pos
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -94,8 +94,8 @@ GRAPHICS-WINDOW
 50
 -50
 50
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -143,7 +143,7 @@ population
 population
 1
 100
-100.0
+50.0
 1
 1
 people
@@ -160,6 +160,36 @@ column-size
 10
 3.0
 1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+8
+285
+195
+318
+people-vision
+people-vision
+0.1
+10
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+14
+342
+186
+375
+repulsion
+repulsion
+2
+5
+2.0
+0.5
 1
 NIL
 HORIZONTAL
