@@ -1,13 +1,86 @@
+breed [people person]
+people-own [destination]
 
+globals [corridor-width final-destination-size walls-color column-color destination-color1 destination-color2 destination-color3 destination-color4 trace-color]
+
+to setup
+  clear-all
+
+  ; Ustaw kolory
+  set walls-color white
+  set column-color violet
+  set trace-color cyan
+  set destination-color1 14
+  set destination-color2 24
+  set destination-color3 34
+  set destination-color4 44
+
+
+  ; Ustaw ściany
+  ask patches [set pcolor walls-color]
+
+  ; Ustaw ścieżki
+  set corridor-width 5
+  ask patches with [distancexy pxcor 0 < corridor-width] [set pcolor trace-color]
+  ask patches with [distancexy 0 pycor < corridor-width] [set pcolor trace-color]
+
+  ; Ustaw słupek
+  ask patches with [distancexy 0 0 < column-size] [set pcolor column-color]
+
+  ; Ustaw punkty docelowe
+  set final-destination-size 10
+  ask patches with [distancexy pxcor 0 < corridor-width and pxcor < (- max-pxcor + final-destination-size)] [set pcolor destination-color1]
+  ask patches with [distancexy pxcor 0 < corridor-width and pxcor > (max-pxcor - final-destination-size)] [set pcolor destination-color2]
+  ask patches with [distancexy 0 pycor < corridor-width and pycor < (- max-pycor + final-destination-size)] [set pcolor destination-color3]
+  ask patches with [distancexy 0 pycor < corridor-width and pycor > (max-pycor - final-destination-size)] [set pcolor destination-color4]
+
+  ; Wygeneruj ludzi i przypisz im odpowiednie kolory
+  create-people population
+  ask people
+  [
+    set size 2
+    set destination one-of [1 2 3 4]
+    ifelse destination = 1
+    [
+      set destination one-of [2 3 4]
+      set color (ifelse-value destination = 2 [destination-color2 + 2] destination = 3 [destination-color3 + 2] destination = 4 [destination-color4 + 2])
+      move-to one-of patches with [pcolor = destination-color1]
+    ]
+    [
+      ifelse destination = 2
+      [
+        set destination one-of [1 3 4]
+        set color (ifelse-value destination = 1 [destination-color1 + 2] destination = 3 [destination-color3 + 2] destination = 4 [destination-color4 + 2])
+        move-to one-of patches with [pcolor = destination-color2]
+      ]
+      [
+        ifelse destination = 3
+        [
+          set destination one-of [2 1 4]
+          set color (ifelse-value destination = 2 [destination-color2 + 2] destination = 1 [destination-color1 + 2] destination = 4 [destination-color4 + 2])
+          move-to one-of patches with [pcolor = destination-color3]
+        ]
+        [
+          set destination one-of [2 3 1]
+          set color (ifelse-value destination = 2 [destination-color2 + 2] destination = 3 [destination-color3 + 2] destination = 1 [destination-color1 + 2])
+          move-to one-of patches with [pcolor = destination-color4]
+        ]
+      ]
+    ]
+  ]
+
+
+  reset-ticks
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
-10
-647
-448
+219
+15
+743
+540
 -1
 -1
-13.0
+5.11
 1
 10
 1
@@ -17,15 +90,79 @@ GRAPHICS-WINDOW
 1
 1
 1
--16
-16
--16
-16
+-50
+50
+-50
+50
 0
 0
 1
 ticks
 30.0
+
+BUTTON
+7
+15
+199
+73
+setup
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+7
+87
+197
+149
+go
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+7
+173
+196
+206
+population
+population
+1
+100
+100.0
+1
+1
+people
+HORIZONTAL
+
+SLIDER
+8
+227
+194
+260
+column-size
+column-size
+1
+10
+3.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
