@@ -2,6 +2,8 @@ breed [people person]
 people-own
 [
   destination
+  fx
+  fy
 ]
 
 globals
@@ -15,6 +17,8 @@ globals
   destination-color3
   destination-color4
   trace-color
+  epsilon
+  max-wall-force
 ]
 
 to setup
@@ -28,24 +32,26 @@ to setup
   set destination-color2 0
   set destination-color3 45
   set destination-color4 15
+  set epsilon 0.00001
+  set max-wall-force 1
 
   ; Ustaw ściany
   ask patches [set pcolor walls-color]
 
   ; Ustaw ścieżki
   set corridor-width 5
-  ask patches with [distancexy pxcor 0 < corridor-width] [set pcolor trace-color]
-  ask patches with [distancexy 0 pycor < corridor-width] [set pcolor trace-color]
+  ask patches with [distancexy pxcor 0 < corridor-width and pxcor > (- max-pxcor + 1) and pxcor < (max-pxcor - 1)] [set pcolor trace-color]
+  ask patches with [distancexy 0 pycor < corridor-width and pycor > (- max-pycor + 1) and pycor < (max-pycor - 1)] [set pcolor trace-color]
 
   ; Ustaw słupek
   ask patches with [distancexy 0 0 < column-size] [set pcolor column-color]
 
   ; Ustaw punkty docelowe
   set final-destination-size 10
-  ask patches with [distancexy pxcor 0 < corridor-width and pxcor < (- max-pxcor + final-destination-size)] [set pcolor destination-color1]
-  ask patches with [distancexy pxcor 0 < corridor-width and pxcor > (max-pxcor - final-destination-size)] [set pcolor destination-color2]
-  ask patches with [distancexy 0 pycor < corridor-width and pycor < (- max-pycor + final-destination-size)] [set pcolor destination-color3]
-  ask patches with [distancexy 0 pycor < corridor-width and pycor > (max-pycor - final-destination-size)] [set pcolor destination-color4]
+  ask patches with [distancexy pxcor 0 < corridor-width and pxcor < (- max-pxcor + final-destination-size) and pxcor > (- max-pxcor + 1)] [set pcolor destination-color1]
+  ask patches with [distancexy pxcor 0 < corridor-width and pxcor > (max-pxcor - final-destination-size) and pxcor < (max-pxcor - 1)] [set pcolor destination-color2]
+  ask patches with [distancexy 0 pycor < corridor-width and pycor < (- max-pycor + final-destination-size) and pycor > (- max-pycor + 1)] [set pcolor destination-color3]
+  ask patches with [distancexy 0 pycor < corridor-width and pycor > (max-pycor - final-destination-size) and pycor < (max-pycor - 1)] [set pcolor destination-color4]
 
   ; Wygeneruj ludzi i przypisz im odpowiednie kolory (kolory odpowiadające ich destynacji)
   create-people population
@@ -71,6 +77,66 @@ to set-initial-position
   let init-pos-color one-of (remove [pcolor] of destination (list destination-color1 destination-color2 destination-color3 destination-color4))
   let init-pos one-of patches with [pcolor = init-pos-color]
   move-to init-pos
+end
+
+to go
+  ask people [calculate-forces]
+  ask people [move]
+
+  tick
+end
+
+to calculate-forces
+  set fx 0
+  set fy 0
+
+  ; Liczenie sił od ludzi w najbliższym otoczeniu (strefa komfortu)
+  let other-people other people in-radius people-vision
+  if any? other-people
+  [
+    let ax mean [xcor] of other-people
+    let ay mean [ycor] of other-people
+
+    set fx people-repulsion * (xcor - ax) / (abs (xcor - ax) + epsilon) ^ (distance-exponent + 1)
+    set fy people-repulsion * (ycor - ay) / (abs (ycor - ay) + epsilon) ^ (distance-exponent + 1)
+  ]
+
+  ; Liczenie sił od ścian w najbliższym otoczeniu
+  let temp-xcor xcor
+  let temp-ycor ycor
+  let temp-fx fx
+  let temp-fy fy
+  let close-walls patches with [(pcolor = walls-color) or (pcolor = column-color)] in-radius people-vision
+  set close-walls close-walls with [sqrt ((temp-xcor - pxcor) ^ 2 + (temp-ycor - pycor) ^ 2) <= people-vision]
+  ask close-walls
+  [
+    let wall-fx walls-repulsion * (temp-xcor - pxcor) / (abs (temp-xcor - pxcor) + epsilon) ^ (distance-exponent + 1)
+    let wall-fy walls-repulsion * (temp-ycor - pycor) / (abs (temp-ycor - pycor) + epsilon) ^ (distance-exponent + 1)
+
+    ; If force is too big, set it to max-value (force is the size of the force vector)
+    let wall-force sqrt (wall-fx ^ 2 + wall-fy ^ 2)
+    if wall-force > max-wall-force
+    [
+      set wall-fx wall-fx * max-wall-force / wall-force
+      set wall-fy wall-fy * max-wall-force / wall-force
+    ]
+    set temp-fx temp-fx + wall-fx
+    set temp-fy temp-fy + wall-fy
+  ]
+  set fx temp-fx
+  set fy temp-fy
+
+  ; Liczenie siły ciągnącej do celu
+  let destination-xcor [pxcor] of destination
+  let destination-ycor [pycor] of destination
+  set fx fx - destination-attraction * (xcor - destination-xcor) / (abs (xcor - destination-xcor) + epsilon)
+  set fy fy - destination-attraction * (ycor - destination-ycor) / (abs (ycor - destination-ycor) + epsilon)
+
+end
+
+to move
+  facexy xcor + fx ycor + fy
+  setxy xcor + fx ycor + fy
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -143,7 +209,7 @@ population
 population
 1
 100
-50.0
+1.0
 1
 1
 people
@@ -158,7 +224,7 @@ column-size
 column-size
 1
 10
-3.0
+2.0
 1
 1
 NIL
@@ -180,16 +246,61 @@ NIL
 HORIZONTAL
 
 SLIDER
-14
+8
 342
 186
 375
-repulsion
-repulsion
+distance-exponent
+distance-exponent
 2
 5
-2.0
-0.5
+3.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+7
+394
+179
+427
+people-repulsion
+people-repulsion
+0
+5
+0.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+7
+441
+179
+474
+walls-repulsion
+walls-repulsion
+0
+10
+0.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+8
+489
+180
+522
+destination-attraction
+destination-attraction
+0
+10
+0.2
+0.1
 1
 NIL
 HORIZONTAL
