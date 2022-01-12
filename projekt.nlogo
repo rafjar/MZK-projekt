@@ -4,6 +4,9 @@ people-own
   destination
   fx
   fy
+  vx
+  vy
+  my-max-vel
 ]
 
 globals
@@ -17,8 +20,9 @@ globals
   destination-color4
   trace-color
   epsilon
-  max-wall-force
-  max-people-force
+  destination-distance-threshold
+  min-vel
+  max-vel
 ]
 
 to setup
@@ -33,8 +37,9 @@ to setup
   set destination-color3 45
   set destination-color4 15
   set epsilon 0.00001
-  set max-wall-force 1
-  set max-people-force 1
+  set destination-distance-threshold 2
+  set min-vel 0.05
+  set max-vel 0.1
 
   draw-graphics
 
@@ -42,6 +47,9 @@ to setup
   create-people population
   ask people
   [
+    set my-max-vel (min-vel + random-float (max-vel - min-vel))
+    set vx 0
+    set vy 0
     set-destination
     set-initial-position
   ]
@@ -84,9 +92,9 @@ to set-initial-position
 end
 
 to go
-  draw-graphics
   ask people [calculate-forces]
   ask people [move]
+  ask people [check-if-reached-destination]
 
   tick
 end
@@ -96,67 +104,74 @@ to calculate-forces
   set fy 0
   let temp-xcor xcor
   let temp-ycor ycor
-  let temp-fx fx
-  let temp-fy fy
 
   ; Liczenie sił od ludzi w najbliższym otoczeniu (strefa komfortu)
-  ;let other-people other people with [sqrt ((temp-xcor - xcor) ^ 2 + (temp-ycor - ycor) ^ 2) <= people-vision]
-  let other-people other people in-radius people-vision
-  ask other-people
+  let temp-people-fx 0
+  let temp-people-fy 0
+  ask other people in-radius people-vision
   [
-    let people-fx people-repulsion * (temp-xcor - xcor) / (abs (temp-xcor - xcor) + epsilon) ^ (distance-exponent + 1)
-    let people-fy people-repulsion * (temp-ycor - ycor) / (abs (temp-ycor - ycor) + epsilon) ^ (distance-exponent + 1)
-    let people-force sqrt (people-fx ^ 2 + people-fy ^ 2)
-    if people-force >= max-people-force
-    [
-      set people-fx people-fx * max-people-force / people-force
-      set people-fy people-fy * max-people-force / people-force
-    ]
-    set temp-fx temp-fx + people-fx
-    set temp-fy temp-fy + people-fy
+    set temp-people-fx temp-people-fx + people-repulsion * (temp-xcor - xcor) / (distancexy-nowrap temp-xcor xcor + epsilon) ^ (distance-exponent + 1)
+    set temp-people-fy temp-people-fy + people-repulsion * (temp-ycor - ycor) / (distancexy-nowrap temp-ycor ycor + epsilon) ^ (distance-exponent + 1)
   ]
+  set fx fx + temp-people-fx
+  set fy fy + temp-people-fy
 
   ; Liczenie sił od ścian w najbliższym otoczeniu
-  ;let close-walls patches with [(pcolor = walls-color or pcolor = column-color) and sqrt ((temp-xcor - pxcor) ^ 2 + (temp-ycor - pycor) ^ 2) <= people-vision]
-  let close-walls patches in-radius people-vision with [pcolor = walls-color or pcolor = column-color]
-  ask close-walls
+  let temp-wall-fx 0
+  let temp-wall-fy 0
+  ask patches in-radius people-vision with [pcolor = walls-color or pcolor = column-color]
   [
-    let wall-fx walls-repulsion * (temp-xcor - pxcor) / (abs (temp-xcor - pxcor) + epsilon) ^ (distance-exponent + 1)
-    let wall-fy walls-repulsion * (temp-ycor - pycor) / (abs (temp-ycor - pycor) + epsilon) ^ (distance-exponent + 1)
-    let walls-force sqrt (wall-fx ^ 2 + wall-fy ^ 2)
-    if walls-force >= max-wall-force
-    [
-      set wall-fx wall-fx * max-wall-force / walls-force
-      set wall-fy wall-fy * max-wall-force / walls-force
-    ]
-    set temp-fx temp-fx + wall-fx
-    set temp-fy temp-fy + wall-fy
-    set pcolor violet
+    let dist sqrt ( ( temp-xcor - pxcor ) ^ 2 + ( temp-ycor - pycor ) ^ 2 )
+    set temp-wall-fx temp-wall-fx + walls-repulsion * (temp-xcor - pxcor) / (dist + epsilon) ^ (distance-exponent + 1)
+    set temp-wall-fy temp-wall-fy + walls-repulsion * (temp-ycor - pycor) / (dist + epsilon) ^ (distance-exponent + 1)
   ]
+  set fx fx + temp-wall-fx
+  set fy fy + temp-wall-fy
 
   ; Liczenie siły ciągnącej do celu
   let destination-xcor [pxcor] of destination
   let destination-ycor [pycor] of destination
-  set temp-fx temp-fx - destination-attraction * (xcor - destination-xcor) / (abs (xcor - destination-xcor) + epsilon)
-  set temp-fy temp-fy - destination-attraction * (ycor - destination-ycor) / (abs (ycor - destination-ycor) + epsilon)
-  set fx temp-fx
-  set fy temp-fy
+  set fx fx - destination-attraction * (xcor - destination-xcor) / (abs (xcor - destination-xcor) + epsilon)
+  set fy fy - destination-attraction * (ycor - destination-ycor) / (abs (ycor - destination-ycor) + epsilon)
 
 end
 
 to move
-  facexy xcor + fx ycor + fy
-  setxy xcor + fx ycor + fy
+  set vx vx + fx
+  set vy vy + fy
+  if vx > my-max-vel [set vx my-max-vel]
+  if vy > max-vel [set vy max-vel]
+  if vx < (- my-max-vel) [set vx (- my-max-vel)]
+  if vy < (- my-max-vel) [set vy (- my-max-vel)]
+  facexy xcor + vx ycor + vy
+  setxy xcor + vx ycor + vy
+end
+
+to check-if-reached-destination
+  let destination-xcor [pxcor] of destination
+  let destination-ycor [pycor] of destination
+  if distancexy-nowrap destination-xcor destination-ycor < destination-distance-threshold
+  [
+    hatch-people 1
+    [
+      set my-max-vel (min-vel + random-float (max-vel - min-vel))
+      set vx 0
+      set vy 0
+      set-destination
+      set-initial-position
+    ]
+    die
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-219
-15
-916
-713
+230
+10
+830
+611
 -1
 -1
-3.43
+2.95
 1
 10
 1
@@ -200,7 +215,7 @@ BUTTON
 149
 go
 go
-NIL
+T
 1
 T
 OBSERVER
@@ -218,8 +233,8 @@ SLIDER
 population
 population
 1
-100
-4.0
+200
+120.0
 1
 1
 people
@@ -232,9 +247,9 @@ SLIDER
 317
 column-size
 column-size
-1
+0
 10
-5.0
+3.0
 1
 1
 NIL
@@ -249,7 +264,7 @@ people-vision
 people-vision
 0.1
 10
-5.0
+4.9
 0.1
 1
 NIL
@@ -278,8 +293,8 @@ SLIDER
 people-repulsion
 people-repulsion
 0
-5
-2.0
+100
+10.8
 0.1
 1
 NIL
@@ -293,8 +308,8 @@ SLIDER
 walls-repulsion
 walls-repulsion
 0
-10
-2.0
+100
+4.5
 0.1
 1
 NIL
@@ -308,8 +323,8 @@ SLIDER
 destination-attraction
 destination-attraction
 0
-10
-3.0
+30
+11.1
 0.1
 1
 NIL
@@ -324,7 +339,7 @@ corridor-width
 corridor-width
 5
 10
-10.0
+9.0
 1
 1
 NIL
