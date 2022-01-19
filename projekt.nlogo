@@ -66,7 +66,7 @@ to draw-graphics
   ask patches with [distancexy 0 pycor < corridor-width and pycor > (- max-pycor + people-vision + 1) and pycor < (max-pycor - people-vision - 1)] [set pcolor trace-color]
 
   ; Ustaw słupek
-  ask patches with [distancexy 0 0 < column-size] [set pcolor column-color]
+  ask patches with [pycor > (pxcor - column-size) and pycor < (pxcor + column-size) and (- pxcor - column-size) < pycor and pycor < (- pxcor + column-size)] [set pcolor column-color]
 
   ; Ustaw punkty docelowe
   set final-destination-size 10
@@ -241,7 +241,7 @@ population
 population
 1
 200
-120.0
+126.0
 1
 1
 people
@@ -256,7 +256,7 @@ column-size
 column-size
 0
 10
-3.0
+8.0
 1
 1
 NIL
@@ -271,7 +271,7 @@ people-vision
 people-vision
 0.1
 10
-3.0
+10.0
 0.1
 1
 NIL
@@ -284,9 +284,9 @@ SLIDER
 483
 people-exponent
 people-exponent
-2
+1
 5
-2.0
+2.9
 0.1
 1
 NIL
@@ -301,7 +301,7 @@ people-repulsion
 people-repulsion
 0
 100
-10.8
+100.0
 0.1
 1
 NIL
@@ -316,7 +316,7 @@ walls-repulsion
 walls-repulsion
 0
 100
-4.5
+1.9
 0.1
 1
 NIL
@@ -331,7 +331,7 @@ destination-attraction
 destination-attraction
 0
 30
-11.1
+0.2
 0.1
 1
 NIL
@@ -361,7 +361,7 @@ wall-vision
 wall-vision
 1
 10
-1.0
+2.0
 0.1
 1
 NIL
