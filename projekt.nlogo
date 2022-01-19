@@ -110,8 +110,8 @@ to calculate-forces
   let temp-people-fy 0
   ask other people in-radius people-vision
   [
-    set temp-people-fx temp-people-fx + people-repulsion * (temp-xcor - xcor) / (distancexy-nowrap temp-xcor xcor + epsilon) ^ (distance-exponent + 1)
-    set temp-people-fy temp-people-fy + people-repulsion * (temp-ycor - ycor) / (distancexy-nowrap temp-ycor ycor + epsilon) ^ (distance-exponent + 1)
+    set temp-people-fx temp-people-fx + people-repulsion * (temp-xcor - xcor) / (distancexy-nowrap temp-xcor xcor + epsilon) ^ (people-exponent + 1)
+    set temp-people-fy temp-people-fy + people-repulsion * (temp-ycor - ycor) / (distancexy-nowrap temp-ycor ycor + epsilon) ^ (people-exponent + 1)
   ]
   set fx fx + temp-people-fx
   set fy fy + temp-people-fy
@@ -119,11 +119,11 @@ to calculate-forces
   ; Liczenie sił od ścian w najbliższym otoczeniu
   let temp-wall-fx 0
   let temp-wall-fy 0
-  ask patches in-radius people-vision with [pcolor = walls-color or pcolor = column-color]
+  ask patches in-radius wall-vision with [pcolor = walls-color or pcolor = column-color]
   [
     let dist sqrt ( ( temp-xcor - pxcor ) ^ 2 + ( temp-ycor - pycor ) ^ 2 )
-    set temp-wall-fx temp-wall-fx + walls-repulsion * (temp-xcor - pxcor) / (dist + epsilon) ^ (distance-exponent + 1)
-    set temp-wall-fy temp-wall-fy + walls-repulsion * (temp-ycor - pycor) / (dist + epsilon) ^ (distance-exponent + 1)
+    set temp-wall-fx temp-wall-fx + walls-repulsion * (temp-xcor - pxcor) / (dist + epsilon) ^ (wall-exponent + 1)
+    set temp-wall-fy temp-wall-fy + walls-repulsion * (temp-ycor - pycor) / (dist + epsilon) ^ (wall-exponent + 1)
   ]
   set fx fx + temp-wall-fx
   set fy fy + temp-wall-fy
@@ -144,6 +144,13 @@ to move
   if vx < (- my-max-vel) [set vx (- my-max-vel)]
   if vy < (- my-max-vel) [set vy (- my-max-vel)]
   facexy xcor + vx ycor + vy
+  if [pcolor] of patch-ahead sqrt (vx ^ 2 + vy ^ 2) = walls-color or [pcolor] of patch-ahead sqrt (vx ^ 2 + vy ^ 2) = column-color
+  [
+    set fx 0
+    set fy 0
+    set vx 0
+    set vy 0
+  ]
   setxy xcor + vx ycor + vy
 end
 
@@ -264,19 +271,19 @@ people-vision
 people-vision
 0.1
 10
-4.9
+3.0
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-8
-394
-186
-427
-distance-exponent
-distance-exponent
+16
+450
+194
+483
+people-exponent
+people-exponent
 2
 5
 2.0
@@ -286,10 +293,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-7
-446
-179
-479
+14
+537
+186
+570
 people-repulsion
 people-repulsion
 0
@@ -301,10 +308,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-7
-493
-179
-526
+14
+584
+186
+617
 walls-repulsion
 walls-repulsion
 0
@@ -316,10 +323,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-8
-541
-180
-574
+15
+632
+187
+665
 destination-attraction
 destination-attraction
 0
@@ -340,6 +347,36 @@ corridor-width
 5
 10
 9.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+9
+383
+195
+416
+wall-vision
+wall-vision
+1
+10
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+16
+494
+188
+527
+wall-exponent
+wall-exponent
+2
+10
+3.0
 1
 1
 NIL
