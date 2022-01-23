@@ -36,7 +36,7 @@ to setup
   set destination-color2 0
   set destination-color3 45
   set destination-color4 15
-  set epsilon 0.00001
+  set epsilon 0.001
   set destination-distance-threshold 2
   set min-vel 0.05
   set max-vel 0.1
@@ -66,6 +66,10 @@ to draw-graphics
   ask patches with [distancexy 0 pycor < corridor-width and pycor > (- max-pycor + people-vision + 1) and pycor < (max-pycor - people-vision - 1)] [set pcolor trace-color]
 
   ; Ustaw słupek
+  ; Słupek kolisty
+  ; ask patches with [distancexy 0 0 < column-size] [set pcolor column-color]
+
+  ; Słupek typu przekręcony kwadrat
   ask patches with [pycor > (pxcor - column-size) and pycor < (pxcor + column-size) and (- pxcor - column-size) < pycor and pycor < (- pxcor + column-size)] [set pcolor column-color]
 
   ; Ustaw punkty docelowe
@@ -134,6 +138,10 @@ to calculate-forces
   set fx fx - destination-attraction * (xcor - destination-xcor) / (abs (xcor - destination-xcor) + epsilon)
   set fy fy - destination-attraction * (ycor - destination-ycor) / (abs (ycor - destination-ycor) + epsilon)
 
+  ; Siła stochastyczna
+  set fx fx + ((random-float 2) - 1) * stochastic-force
+  set fy fy + ((random-float 2) - 1) * stochastic-force
+
 end
 
 to move
@@ -174,11 +182,11 @@ end
 GRAPHICS-WINDOW
 230
 10
-830
-611
+1019
+800
 -1
 -1
-2.95
+3.89
 1
 10
 1
@@ -256,7 +264,7 @@ column-size
 column-size
 0
 10
-8.0
+9.0
 1
 1
 NIL
@@ -271,22 +279,22 @@ people-vision
 people-vision
 0.1
 10
-10.0
+6.0
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-16
-450
-194
-483
+15
+436
+193
+469
 people-exponent
 people-exponent
-1
+0
 5
-2.9
+1.2
 0.1
 1
 NIL
@@ -294,14 +302,14 @@ HORIZONTAL
 
 SLIDER
 14
-537
+549
 186
-570
+582
 people-repulsion
 people-repulsion
 0
-100
-100.0
+200
+100.6
 0.1
 1
 NIL
@@ -315,8 +323,8 @@ SLIDER
 walls-repulsion
 walls-repulsion
 0
-100
-1.9
+200
+103.2
 0.1
 1
 NIL
@@ -324,14 +332,14 @@ HORIZONTAL
 
 SLIDER
 15
-632
+616
 187
-665
+649
 destination-attraction
 destination-attraction
 0
-30
-0.2
+300
+22.9
 0.1
 1
 NIL
@@ -353,31 +361,46 @@ NIL
 HORIZONTAL
 
 SLIDER
-9
-383
-195
-416
+8
+370
+194
+403
 wall-vision
 wall-vision
 1
 10
-2.0
+3.0
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-16
-494
-188
-527
+15
+468
+187
+501
 wall-exponent
 wall-exponent
 2
 10
 3.0
 1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+15
+652
+187
+685
+stochastic-force
+stochastic-force
+0
+100
+0.0
+0.1
 1
 NIL
 HORIZONTAL
